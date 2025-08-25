@@ -4,7 +4,13 @@ import logging
 import asyncio
 
 from aiogram import Router, F, Bot
-from aiogram.types import Message, FSInputFile, InputProfilePhotoStatic, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    Message,
+    FSInputFile,
+    InputProfilePhotoStatic,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
 
 from Bot.config import trole
 from Bot.Utils.formater import en_ru
@@ -64,7 +70,11 @@ class CommandsHandler:
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="Перейти в бота", url=f"https://t.me/{me.username}")]
+                [
+                    InlineKeyboardButton(
+                        text="Перейти в бота", url=f"https://t.me/{me.username}"
+                    )
+                ]
             ]
         )
 
@@ -340,7 +350,7 @@ class CommandsHandler:
 
         if message.from_user.id == business_connection.user.id:
             try:
-                data = message.text[len(".typing "):].strip()
+                data = message.text[len(".typing ") :].strip()
 
                 delay = 30
 
@@ -348,8 +358,7 @@ class CommandsHandler:
                     delay = int(data)
 
                 await message.bot.delete_business_messages(
-                    business_connection_id=feedback,
-                    message_ids=[message.message_id]
+                    business_connection_id=feedback, message_ids=[message.message_id]
                 )
 
                 await self._send_message(
@@ -357,11 +366,10 @@ class CommandsHandler:
                     chat_id=message.chat.id,
                     business_connection_id=feedback,
                     action="typing",
-                    delay=delay
+                    delay=delay,
                 )
             except Exception as ex:
                 self.logger.warning(msg=f"Error: {ex}")
-
 
     async def node_command(self, message: Message) -> None:
         feedback = message.business_connection_id
@@ -369,7 +377,7 @@ class CommandsHandler:
 
         if message.from_user.id == business_connection.user.id:
             try:
-                data = message.text[len(".node "):].strip()
+                data = message.text[len(".node ") :].strip()
 
                 delay = 30
 
@@ -377,8 +385,7 @@ class CommandsHandler:
                     delay = int(data)
 
                 await message.bot.delete_business_messages(
-                    business_connection_id=feedback,
-                    message_ids=[message.message_id]
+                    business_connection_id=feedback, message_ids=[message.message_id]
                 )
 
                 await self._send_message(
@@ -386,7 +393,7 @@ class CommandsHandler:
                     chat_id=message.chat.id,
                     business_connection_id=feedback,
                     action="record_video_note",
-                    delay=delay
+                    delay=delay,
                 )
             except Exception as ex:
                 self.logger.warning(msg=f"Error: {ex}")
@@ -397,7 +404,7 @@ class CommandsHandler:
 
         if message.from_user.id == business_connection.user.id:
             try:
-                data = message.text[len(".voice "):].strip()
+                data = message.text[len(".voice ") :].strip()
 
                 delay = 30
 
@@ -405,8 +412,7 @@ class CommandsHandler:
                     delay = int(data)
 
                 await message.bot.delete_business_messages(
-                    business_connection_id=feedback,
-                    message_ids=[message.message_id]
+                    business_connection_id=feedback, message_ids=[message.message_id]
                 )
 
                 await self._send_message(
@@ -414,7 +420,7 @@ class CommandsHandler:
                     chat_id=message.chat.id,
                     business_connection_id=feedback,
                     action="record_voice",
-                    delay=delay
+                    delay=delay,
                 )
             except Exception as ex:
                 self.logger.warning(msg=f"Error: {ex}")

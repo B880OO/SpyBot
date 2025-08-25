@@ -3,6 +3,7 @@ import logging
 from aiogram import Router, F
 from aiogram.types import Message, BusinessConnection
 
+from Bot.Utils.spy import EditHandler, DeleteHandler
 from Bot.Utils.save import SaveHandler
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,9 @@ class BusinessHandler:
         self.router.business_message(F.video_note)(self.business_video_note)
         self.router.business_message(F.voice)(self.business_voice)
 
+        self.router.deleted_business_messages()(self.DeleteUpdate)
+        self.router.edited_business_message()(self.EditUpdate)
+
     async def business_text(self, message: Message, session: AsyncSession) -> None:
         try:
             feedback = message.business_connection_id
@@ -33,7 +37,7 @@ class BusinessHandler:
                 session=session,
             )
         except Exception as e:
-            self.logger.warning(msg=f"Error: {e}")
+            self.logger.error(msg=f"Error: {e}")
 
     async def business_photo(self, message: Message, session: AsyncSession) -> None:
         try:
@@ -46,7 +50,7 @@ class BusinessHandler:
                 session=session,
             )
         except Exception as e:
-            self.logger.warning(msg=f"Error: {e}")
+            self.logger.error(msg=f"Error: {e}")
 
     async def business_video(self, message: Message, session: AsyncSession) -> None:
         try:
@@ -59,7 +63,7 @@ class BusinessHandler:
                 session=session,
             )
         except Exception as e:
-            self.logger.warning(msg=f"Error: {e}")
+            self.logger.error(msg=f"Error: {e}")
 
     async def business_video_note(
         self, message: Message, session: AsyncSession
@@ -74,7 +78,7 @@ class BusinessHandler:
                 session=session,
             )
         except Exception as e:
-            self.logger.warning(msg=f"Error: {e}")
+            self.logger.error(msg=f"Error: {e}")
 
     async def business_voice(self, message: Message, session: AsyncSession) -> None:
         try:
@@ -87,7 +91,22 @@ class BusinessHandler:
                 session=session,
             )
         except Exception as e:
-            self.logger.warning(msg=f"Error: {e}")
+            self.logger.error(msg=f"Error: {e}")
+
+    async def DeleteUpdate(self, message: Message, session: AsyncSession) -> None:
+        try:
+            bot = message.bot
+            for ids in message.message_ids:
+                message_id = int(f"{message.chat.id}{ids}")
+            await DeleteHandler(message_id=message_id, bot=bot, session=session)
+        except Exception as ex:
+            self.logger.error(msg=f"Error: {ex}")
+
+    async def EditUpdate(self, message: Message, session: AsyncSession) -> None:
+        try:
+            await EditHandler(message=message, session=session)
+        except Exception as ex:
+            self.logger.error(msg=f"Error: {ex}")
 
     async def connection(self, update: BusinessConnection) -> None:
         await update.bot.send_message(
