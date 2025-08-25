@@ -22,7 +22,6 @@ def escape_html(text: Optional[str]) -> str:
 def build_caption(
     msg_type: str, chat_id: int, chat_title: str, caption: Optional[str]
 ) -> str:
-    """Формирует подпись в зависимости от типа сообщения"""
     base = f"Отправитель: <a href='tg://user?id={chat_id}'><b>{escape_html(chat_title)}</b></a>\n"
     body = f"<blockquote><b>{escape_html(caption)}</b></blockquote>"
 
@@ -39,7 +38,6 @@ def build_caption(
 async def send_deleted_message(
     bot: Bot, msg_type: str, target_id: int, file_id: Optional[str], caption_text: str
 ) -> None:
-    """Унифицированная отправка удалённых сообщений"""
     handlers: dict[str, Callable[..., Awaitable[Message]]] = {
         "Message": bot.send_message,
         "Photo": bot.send_photo,
@@ -71,7 +69,6 @@ async def send_deleted_message(
 
 
 async def DeleteHandler(message_id: int, bot: Bot, session: AsyncSession) -> None:
-    """Обработка удаления сообщений"""
     try:
         request = select(MessageCache).where(MessageCache.Message_id == message_id)
         message = await session.scalar(request)
@@ -107,7 +104,6 @@ async def notify_edit(
     new_text: str,
     old_exists: bool,
 ) -> None:
-    """Формирует и отправляет уведомление об изменении"""
     if old_exists:
         text = (
             f"🔏 Пользователь <a href='tg://user?id={editor_id}'>{escape_html(editor_name)}</a> "
@@ -132,7 +128,6 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
         msg_id = int(f"{message.chat.id}{message.message_id}")
         connection = await bot.get_business_connection(message.business_connection_id)
 
-        # правильное обращение к колонке
         stmt = select(MessageCache).where(MessageCache.Message_id == msg_id)
         cached = await session.scalar(stmt)
 
@@ -142,7 +137,6 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
         if cached:
             cached.Caption = message.text or ""
 
-            # Пропускаем уведомление если редактировал сам владелец
             if message.from_user.id != cached.User_id:
                 await bot.send_message(
                     cached.User_id,
@@ -153,7 +147,6 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
                     parse_mode="HTML",
                 )
         else:
-            # Создаём новую запись если кэша нет
             cached = MessageCache(
                 Message_id=msg_id,
                 Chat_id=message.chat.id,

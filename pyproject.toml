@@ -9,6 +9,8 @@ dependencies = [
     "asyncpg>=0.30.0",
     "cachetools>=6.1.0",
     "colorlog>=6.9.0",
+    "googletrans>=4.0.2",
     "pydantic-settings>=2.10.1",
+    "pygoogletranslation>=2.0.6",
     "sqlalchemy>=2.0.42",
 ]

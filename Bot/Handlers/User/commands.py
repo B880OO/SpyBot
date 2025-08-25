@@ -14,6 +14,7 @@ from aiogram.types import (
 
 from Bot.config import trole
 from Bot.Utils.formater import en_ru
+from Bot.Utils.translate import tr
 
 
 class CommandsHandler:
@@ -28,6 +29,7 @@ class CommandsHandler:
         self.router.business_message(F.text == ".love")(self.love_command)
         self.router.business_message(F.text == ".1000-7")(self.ghole_command)
         self.router.business_message(F.text == ".format")(self.format_command)
+        self.router.business_message(F.text == ".tr")(self.tr_command)
 
         self.router.business_message(F.text.startswith(".typing"))(self.typing_command)
         self.router.business_message(F.text.startswith(".node"))(self.node_command)
@@ -60,6 +62,8 @@ class CommandsHandler:
             " <code>.love</code> — <b>Магическая анимация любви</b>\n"
             " <code>.1000-7</code> — <b>Отправляет пасту анимешникам, и меняет аву</b>\n"
             " <code>.format</code> — <b>Если перепутали раскладку текста</b>\n"
+            " <code>.tr</code> — <b>Переводчик на русский</b>\n"
+            " <code>.ai</code> — <b>Вопрос в Gemini</b>\n"
             "</blockquote>\n"
             "<blockquote>"
             " <code>.typing (delay)</code> — <b>Фейк печатание в чате</b>\n"
@@ -93,6 +97,144 @@ class CommandsHandler:
                     await asyncio.sleep(0.15)
             except Exception as e:
                 self.logger.warning(msg=f"Error: {e}")
+
+    async def ghole_command(self, message: Message) -> None:
+        feedback = message.business_connection_id
+        business_connection = await message.bot.get_business_connection(feedback)
+        if message.from_user.id == business_connection.user.id:
+            try:
+                await message.edit_text(
+                    text="<b>Аниме на аве, мать в канаве</b>", parse_mode="HTML"
+                )
+                registration_image_path = "Photo/logo.jpg"
+                registration_photo = FSInputFile(registration_image_path)
+                await message.bot.set_business_account_profile_photo(
+                    business_connection_id=message.business_connection_id,
+                    photo=InputProfilePhotoStatic(photo=registration_photo),
+                )
+            except Exception as e:
+                self.logger.warning(msg=f"Error: {e}")
+
+    async def format_command(self, message: Message) -> None:
+        feedback = message.business_connection_id
+        business_connection = await message.bot.get_business_connection(feedback)
+
+        if message.from_user.id == business_connection.user.id:
+            try:
+                if message.reply_to_message:
+                    edition_id = message.reply_to_message.message_id
+                    edition_text = message.reply_to_message.text or ""
+
+                    converted = "".join(en_ru.get(ch, ch) for ch in edition_text)
+
+                    if converted != edition_text:
+                        await message.bot.edit_business_message_text(
+                            business_connection_id=feedback,
+                            message_id=edition_id,
+                            text=converted,
+                        )
+                    await message.bot.delete_business_messages(
+                        business_connection_id=feedback,
+                        message_ids=[message.message_id],
+                    )
+                else:
+                    await message.edit_text(text="Ответом на сообщение!!")
+            except Exception as ex:
+                self.logger.warning(msg=f"Error: {ex}")
+
+    async def typing_command(self, message: Message) -> None:
+        feedback = message.business_connection_id
+        business_connection = await message.bot.get_business_connection(feedback)
+
+        if message.from_user.id == business_connection.user.id:
+            try:
+                data = message.text[len(".typing ") :].strip()
+
+                delay = 30
+
+                if data.isdigit():
+                    delay = int(data)
+
+                await message.bot.delete_business_messages(
+                    business_connection_id=feedback, message_ids=[message.message_id]
+                )
+
+                await self._send_message(
+                    bot=message.bot,
+                    chat_id=message.chat.id,
+                    business_connection_id=feedback,
+                    action="typing",
+                    delay=delay,
+                )
+            except Exception as ex:
+                self.logger.warning(msg=f"Error: {ex}")
+
+    async def node_command(self, message: Message) -> None:
+        feedback = message.business_connection_id
+        business_connection = await message.bot.get_business_connection(feedback)
+
+        if message.from_user.id == business_connection.user.id:
+            try:
+                data = message.text[len(".node ") :].strip()
+
+                delay = 30
+
+                if data.isdigit():
+                    delay = int(data)
+
+                await message.bot.delete_business_messages(
+                    business_connection_id=feedback, message_ids=[message.message_id]
+                )
+
+                await self._send_message(
+                    bot=message.bot,
+                    chat_id=message.chat.id,
+                    business_connection_id=feedback,
+                    action="record_video_note",
+                    delay=delay,
+                )
+            except Exception as ex:
+                self.logger.warning(msg=f"Error: {ex}")
+
+    async def voice_command(self, message: Message) -> None:
+        feedback = message.business_connection_id
+        business_connection = await message.bot.get_business_connection(feedback)
+
+        if message.from_user.id == business_connection.user.id:
+            try:
+                data = message.text[len(".voice ") :].strip()
+
+                delay = 30
+
+                if data.isdigit():
+                    delay = int(data)
+
+                await message.bot.delete_business_messages(
+                    business_connection_id=feedback, message_ids=[message.message_id]
+                )
+
+                await self._send_message(
+                    bot=message.bot,
+                    chat_id=message.chat.id,
+                    business_connection_id=feedback,
+                    action="record_voice",
+                    delay=delay,
+                )
+            except Exception as ex:
+                self.logger.warning(msg=f"Error: {ex}")
+
+    async def tr_command(self, message: Message) -> None:
+        feedback = message.business_connection_id
+        business_connection = await message.bot.get_business_connection(feedback)
+        if message.from_user.id == business_connection.user.id:
+            try:
+                if message.reply_to_message:
+                    text = message.reply_to_message.text or ""
+
+                    translated = await tr(text=text)
+                    await message.edit_text(text=translated)
+            except Exception as ex:
+                self.logger.error(msg=f"Error: {ex}")
 
     async def love_command(self, message: Message) -> None:
         feedback = message.business_connection_id
@@ -298,129 +440,4 @@ class CommandsHandler:
                     await message.edit_text(f"<b>{i}</b>", parse_mode="HTML")
                     await asyncio.sleep(0.5)
             except Exception as e:
-                self.logger.warning(msg=f"Error: {e}")
-
-    async def ghole_command(self, message: Message) -> None:
-        feedback = message.business_connection_id
-        business_connection = await message.bot.get_business_connection(feedback)
-        if message.from_user.id == business_connection.user.id:
-            try:
-                await message.edit_text(
-                    text="<b>Аниме на аве, мать в канаве</b>", parse_mode="HTML"
-                )
-                registration_image_path = "Photo/logo.jpg"
-                registration_photo = FSInputFile(registration_image_path)
-                await message.bot.set_business_account_profile_photo(
-                    business_connection_id=message.business_connection_id,
-                    photo=InputProfilePhotoStatic(photo=registration_photo),
-                )
-            except Exception as e:
-                self.logger.warning(msg=f"Error: {e}")
-
-    async def format_command(self, message: Message) -> None:
-        feedback = message.business_connection_id
-        business_connection = await message.bot.get_business_connection(feedback)
-
-        if message.from_user.id == business_connection.user.id:
-            try:
-                if message.reply_to_message:
-                    edition_id = message.reply_to_message.message_id
-                    edition_text = message.reply_to_message.text or ""
-
-                    converted = "".join(en_ru.get(ch, ch) for ch in edition_text)
-
-                    if converted != edition_text:
-                        await message.bot.edit_business_message_text(
-                            business_connection_id=feedback,
-                            message_id=edition_id,
-                            text=converted,
-                        )
-                    await message.bot.delete_business_messages(
-                        business_connection_id=feedback,
-                        message_ids=[message.message_id],
-                    )
-                else:
-                    await message.edit_text(text="Ответом на сообщение!!")
-            except Exception as ex:
-                self.logger.warning(msg=f"Error: {ex}")
-
-    async def typing_command(self, message: Message) -> None:
-        feedback = message.business_connection_id
-        business_connection = await message.bot.get_business_connection(feedback)
-
-        if message.from_user.id == business_connection.user.id:
-            try:
-                data = message.text[len(".typing ") :].strip()
-
-                delay = 30
-
-                if data.isdigit():
-                    delay = int(data)
-
-                await message.bot.delete_business_messages(
-                    business_connection_id=feedback, message_ids=[message.message_id]
-                )
-
-                await self._send_message(
-                    bot=message.bot,
-                    chat_id=message.chat.id,
-                    business_connection_id=feedback,
-                    action="typing",
-                    delay=delay,
-                )
-            except Exception as ex:
-                self.logger.warning(msg=f"Error: {ex}")
-
-    async def node_command(self, message: Message) -> None:
-        feedback = message.business_connection_id
-        business_connection = await message.bot.get_business_connection(feedback)
-
-        if message.from_user.id == business_connection.user.id:
-            try:
-                data = message.text[len(".node ") :].strip()
-
-                delay = 30
-
-                if data.isdigit():
-                    delay = int(data)
-
-                await message.bot.delete_business_messages(
-                    business_connection_id=feedback, message_ids=[message.message_id]
-                )
-
-                await self._send_message(
-                    bot=message.bot,
-                    chat_id=message.chat.id,
-                    business_connection_id=feedback,
-                    action="record_video_note",
-                    delay=delay,
-                )
-            except Exception as ex:
-                self.logger.warning(msg=f"Error: {ex}")
-
-    async def voice_command(self, message: Message) -> None:
-        feedback = message.business_connection_id
-        business_connection = await message.bot.get_business_connection(feedback)
-
-        if message.from_user.id == business_connection.user.id:
-            try:
-                data = message.text[len(".voice ") :].strip()
-
-                delay = 30
-
-                if data.isdigit():
-                    delay = int(data)
-
-                await message.bot.delete_business_messages(
-                    business_connection_id=feedback, message_ids=[message.message_id]
-                )
-
-                await self._send_message(
-                    bot=message.bot,
-                    chat_id=message.chat.id,
-                    business_connection_id=feedback,
-                    action="record_voice",
-                    delay=delay,
-                )
-            except Exception as ex:
-                self.logger.warning(msg=f"Error: {ex}")
+                self.logger.error(msg=f"Error: {e}")

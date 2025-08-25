@@ -1,4 +1,11 @@
-from Bot.config import trole
+import asyncio
+from googletrans import Translator
 
 
-print(len(trole))
+async def main():
+    translator = Translator()
+    translation = await translator.translate("Hello, world!", dest="ru")
+    print(translation.text)  # ¡Hola Mundo!
+
+
+asyncio.run(main())
