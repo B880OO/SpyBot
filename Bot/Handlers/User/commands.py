@@ -1,3 +1,4 @@
+import re
 import time
 import random
 import logging
@@ -13,6 +14,7 @@ from aiogram.types import (
 )
 
 from Bot.config import trole
+from Bot.Utils.ai import ask
 from Bot.Utils.formater import en_ru
 from Bot.Utils.translate import tr
 
@@ -31,9 +33,19 @@ class CommandsHandler:
         self.router.business_message(F.text == ".format")(self.format_command)
         self.router.business_message(F.text == ".tr")(self.tr_command)
 
+        self.router.business_message(F.text.startswith(".ai"))(self.ai_command)
         self.router.business_message(F.text.startswith(".typing"))(self.typing_command)
         self.router.business_message(F.text.startswith(".node"))(self.node_command)
         self.router.business_message(F.text.startswith(".voice"))(self.voice_command)
+
+    def split_text(self, text: str, limit: int = 2048):
+        return [text[i : i + limit] for i in range(0, len(text), limit)]
+
+    def escape_md_v2(self, text: str) -> str:
+        escape_chars = r"_*[]()~`>#+-=|{}.!"
+        return re.sub(
+            f"([{''.join(re.escape(c) for c in escape_chars)}])", r"\\\1", text
+        )
 
     async def _send_message(
         self,
@@ -63,9 +75,9 @@ class CommandsHandler:
             " <code>.1000-7</code> — <b>Отправляет пасту анимешникам, и меняет аву</b>\n"
             " <code>.format</code> — <b>Если перепутали раскладку текста</b>\n"
             " <code>.tr</code> — <b>Переводчик на русский</b>\n"
-            " <code>.ai</code> — <b>Вопрос в Gemini</b>\n"
             "</blockquote>\n"
             "<blockquote>"
+            " <code>.ai (text)</code> — <b>Вопрос нейросети Gemini</b>\n"
             " <code>.typing (delay)</code> — <b>Фейк печатание в чате</b>\n"
             " <code>.node (delay)</code> — <b>Фейк запись видео кружков</b>\n"
             " <code>.voice (delay)</code> — <b>Фейк запись голосового</b>\n"
@@ -93,7 +105,11 @@ class CommandsHandler:
                     business_connection_id=feedback, message_ids=[message.message_id]
                 )
                 for text in trole:
-                    await message.answer(text=text)
+                    await message.bot.send_message(
+                        chat_id=message.chat.id,
+                        business_connection_id=feedback,
+                        text=text,
+                    )
                     await asyncio.sleep(0.15)
             except Exception as e:
                 self.logger.warning(msg=f"Error: {e}")
@@ -128,8 +144,9 @@ class CommandsHandler:
                     converted = "".join(en_ru.get(ch, ch) for ch in edition_text)
 
                     if converted != edition_text:
-                        await message.bot.edit_business_message_text(
+                        await message.bot.edit_message_text(
                             business_connection_id=feedback,
+                            chat_id=message.chat.id,
                             message_id=edition_id,
                             text=converted,
                         )
@@ -235,6 +252,33 @@ class CommandsHandler:
                     await message.edit_text(text=translated)
             except Exception as ex:
                 self.logger.error(msg=f"Error: {ex}")
+
+    async def ai_command(self, message: Message) -> None:
+        feedback = message.business_connection_id
+        business_connection = await message.bot.get_business_connection(feedback)
+
+        if message.from_user.id == business_connection.user.id:
+            try:
+                data = message.text[len(".ai ") :].strip()
+
+                old_message = await message.edit_text(
+                    text="<b>Thinking...</b>", parse_mode="HTML"
+                )
+
+                response = await ask(request=data)
+                ai_text = response["choices"][0]["message"]["content"]
+
+                await message.bot.delete_business_messages(
+                    business_connection_id=feedback,
+                    message_ids=[old_message.message_id],
+                )
+
+                for chunk in self.split_text(ai_text):
+                    await message.answer(text=chunk, parse_mode="Markdown")
+
+            except Exception as ex:
+                self.logger.error(f"Error: {ex}")
+                await message.reply("Произошла ошибка при обработке команды.")
 
     async def love_command(self, message: Message) -> None:
         feedback = message.business_connection_id
