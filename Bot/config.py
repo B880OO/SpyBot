@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     TOKEN: str
     DATABASE_URL: str
     ADMINS: List[int] = []
+    AI_KEY: str
 
     class Config:
         env_file = ".env"

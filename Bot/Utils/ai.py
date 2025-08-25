@@ -1,13 +1,13 @@
 import aiohttp
 import asyncio
 
-API_KEY = "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"
+from Bot.config import settings
 
 
-async def ask_image():
+async def ask(request: str):
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
-        "Authorization": f"Bearer {API_KEY}",
+        "Authorization": f"Bearer {settings.AI_KEY}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -16,7 +16,11 @@ async def ask_image():
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "What is in this image?"},
+                    {
+                        "type": "text",
+                        "text": request
+                        + "Дай ответ по кароче что-бы она вмешалась в лимиты телеграма",
+                    },
                 ],
             }
         ],
@@ -29,7 +33,9 @@ async def ask_image():
 
 
 async def main():
-    result = await ask_image()
+    result = await ask(
+        request="Can u code me telegram bot in js which send me echo messages use only js without libs"
+    )
     print(result)
 
 
