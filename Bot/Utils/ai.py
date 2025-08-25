@@ -18,8 +18,7 @@ async def ask(request: str):
                 "content": [
                     {
                         "type": "text",
-                        "text": request
-                        + "Дай ответ по кароче что-бы она вмешалась в лимиты телеграма",
+                        "text": request,
                     },
                 ],
             }
