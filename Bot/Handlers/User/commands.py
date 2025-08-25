@@ -110,7 +110,7 @@ class CommandsHandler:
                         business_connection_id=feedback,
                         text=text,
                     )
-                    await asyncio.sleep(0.15)
+                    await asyncio.sleep(0.20)
             except Exception as e:
                 self.logger.warning(msg=f"Error: {e}")
 
