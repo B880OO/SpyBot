@@ -14,7 +14,7 @@ from Bot.Middleware import DataBaseSessionMiddleware
 
 
 class TelegramBot:
-    def __init__(self, token: str, log_level: int = logging.INFO):
+    def __init__(self, token: str, log_level: int = logging.WARNING):
         self.log_level = log_level
         self._setup_logging(self.log_level)
         self.logger = logging.getLogger(__name__)
