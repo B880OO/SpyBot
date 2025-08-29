@@ -13,7 +13,7 @@ from aiogram.types import (
     InlineKeyboardButton,
 )
 
-from Bot.config import trole
+from Bot.config import SOURCE, trole
 from Bot.Utils.ai import ask
 from Bot.Utils.formater import en_ru
 from Bot.Utils.translate import tr
@@ -90,7 +90,8 @@ class CommandsHandler:
                     InlineKeyboardButton(
                         text="Перейти в бота", url=f"https://t.me/{me.username}"
                     )
-                ]
+                ],
+                [InlineKeyboardButton(text="Сурс бота", url=SOURCE)],
             ]
         )
 

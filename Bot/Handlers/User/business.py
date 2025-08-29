@@ -4,6 +4,7 @@ from aiogram import Router, F
 from aiogram.types import Message, BusinessConnection
 
 from Bot.Utils.spy import EditHandler, DeleteHandler
+from Bot.Utils.ttl import ttl_media
 from Bot.Utils.save import SaveHandler
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,12 +31,47 @@ class BusinessHandler:
         try:
             feedback = message.business_connection_id
             connection = await message.bot.get_business_connection(feedback)
-            await SaveHandler(
-                message=message,
-                user_id=connection.user.id,
-                message_type="Message",
-                session=session,
-            )
+
+            result = False
+
+            if message.from_user.id == connection.user.id and message.reply_to_message:
+                if message.reply_to_message.photo:
+                    await ttl_media(
+                        message=message,
+                        file_type="photo",
+                        send_method=message.bot.send_photo,
+                    )
+                    result = True
+                elif message.reply_to_message.video:
+                    await ttl_media(
+                        message=message,
+                        file_type="video",
+                        send_method=message.bot.send_video,
+                    )
+                    result = True
+                elif message.reply_to_message.voice:
+                    await ttl_media(
+                        message=message,
+                        file_type="voice",
+                        send_method=message.bot.send_voice,
+                    )
+                    result = True
+                elif message.reply_to_message.video_note:
+                    await ttl_media(
+                        message=message,
+                        file_type="video_note",
+                        send_method=message.bot.send_video,
+                    )
+                    result = True
+
+            if not result:
+                await SaveHandler(
+                    message=message,
+                    user_id=connection.user.id,
+                    message_type="Message",
+                    session=session,
+                )
+
         except Exception as e:
             self.logger.error(msg=f"Error: {e}")
 

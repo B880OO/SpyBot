@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Bot.Database import MessageCache
+from Bot.Utils.crypto import decrypt, encrypt
 
 
 logger = logging.getLogger(__name__)
@@ -22,8 +23,12 @@ def escape_html(text: Optional[str]) -> str:
 def build_caption(
     msg_type: str, chat_id: int, chat_title: str, caption: Optional[str]
 ) -> str:
+    """Собирает текст для сообщений о удалённом контенте"""
     base = f"Отправитель: <a href='tg://user?id={chat_id}'><b>{escape_html(chat_title)}</b></a>\n"
-    body = f"<blockquote><b>{escape_html(caption)}</b></blockquote>"
+
+    # сначала расшифровка, потом экранирование
+    decrypted = decrypt(token=caption) if caption else ""
+    body = f"<blockquote><b>{escape_html(decrypted)}</b></blockquote>"
 
     texts = {
         "Message": "🗑 Это сообщение было удалено:",
@@ -84,7 +89,6 @@ async def DeleteHandler(message_id: int, bot: Bot, session: AsyncSession) -> Non
         await session.delete(message)
         await session.commit()
 
-        # Куда слать? текстовые идут в user_id, остальные в chat_id
         target_id = message.User_id
 
         await send_deleted_message(
@@ -93,32 +97,6 @@ async def DeleteHandler(message_id: int, bot: Bot, session: AsyncSession) -> Non
 
     except Exception as ex:
         logger.exception(f"Ошибка в DeleteHandler: {ex}")
-
-
-async def notify_edit(
-    bot: Bot,
-    target_id: int,
-    editor_id: int,
-    editor_name: str,
-    old_text: str,
-    new_text: str,
-    old_exists: bool,
-) -> None:
-    if old_exists:
-        text = (
-            f"🔏 Пользователь <a href='tg://user?id={editor_id}'>{escape_html(editor_name)}</a> "
-            f"изменил сообщение:\n\n"
-            f"Старый текст: <blockquote><b>{old_text}</b></blockquote>\n"
-            f"Новый текст: <blockquote><b>{new_text}</b></blockquote>"
-        )
-    else:
-        text = (
-            f"🔏 Пользователь <a href='tg://user?id={editor_id}'>{escape_html(editor_name)}</a> "
-            f"изменил сообщение, но старый текст отсутствует в кэше.\n\n"
-            f"Новый текст: <blockquote><b>{new_text}</b></blockquote>"
-        )
-
-    await bot.send_message(target_id, text, parse_mode="HTML")
 
 
 async def EditHandler(message: Message, session: AsyncSession) -> None:
@@ -131,29 +109,30 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
         stmt = select(MessageCache).where(MessageCache.Message_id == msg_id)
         cached = await session.scalar(stmt)
 
-        old_text = escape_html(cached.Caption if cached else None)
-        new_text = escape_html(message.text)
-
         if cached:
-            cached.Caption = message.text or ""
+            old_text = decrypt(token=cached.Caption) if cached.Caption else ""
+            new_text = message.text or ""
+
+            cached.Caption = encrypt(text=new_text) or ""
 
             if message.from_user.id != cached.User_id:
                 await bot.send_message(
                     cached.User_id,
                     f"🔏 Пользователь <a href='tg://user?id={message.from_user.id}'>{escape_html(message.from_user.full_name)}</a> "
                     f"изменил сообщение:\n\n"
-                    f"Старый текст: <blockquote><b>{old_text}</b></blockquote>\n"
-                    f"Новый текст: <blockquote><b>{new_text}</b></blockquote>",
+                    f"Старый текст: <blockquote><b>{escape_html(old_text)}</b></blockquote>\n"
+                    f"Новый текст: <blockquote><b>{escape_html(new_text)}</b></blockquote>",
                     parse_mode="HTML",
                 )
         else:
+            new_text = message.text or ""
             cached = MessageCache(
                 Message_id=msg_id,
                 Chat_id=message.chat.id,
                 Chat_full_name=message.from_user.full_name,
-                Caption=message.text or "",
+                Caption=encrypt(text=new_text),
                 Type="Message",
-                File_id="",  # если нет файла
+                File_id="",
                 User_id=connection.user.id,
             )
             session.add(cached)
@@ -163,7 +142,7 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
                     connection.user.id,
                     f"🔏 Пользователь <a href='tg://user?id={message.from_user.id}'>{escape_html(message.from_user.full_name)}</a> "
                     f"изменил сообщение, но старый текст отсутствует в кэше.\n\n"
-                    f"Новый текст: <blockquote><b>{new_text}</b></blockquote>",
+                    f"Новый текст: <blockquote><b>{escape_html(new_text)}</b></blockquote>",
                     parse_mode="HTML",
                 )
 

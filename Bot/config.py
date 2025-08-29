@@ -5,14 +5,17 @@ from typing import List
 
 class Settings(BaseSettings):
     TOKEN: str
+    AI_KEY: str
+    FERNET_KEY: str
     DATABASE_URL: str
     ADMINS: List[int] = []
-    AI_KEY: str
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
 
+
+SOURCE = "https://github.com/B880OO/SpyBot.git"
 
 settings = Settings()
 translator = Translator()

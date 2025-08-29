@@ -7,6 +7,7 @@ from aiogram.filters import Command
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from Bot.config import SOURCE
 from Bot.Database import User
 
 
@@ -32,7 +33,7 @@ class UserHandler:
             )
             session.add(new_user)
         await message.answer(
-            text="Well come to bot for spy bot, for save deleted messages!!!"
+            text=f"Добро пожаловать в open source бота,\nкоторый сохраняет все удаленный сообщение\nСсылка на сурс бота: {SOURCE}"
         )
 
     async def echo_message(self, message: Message) -> None:

@@ -1,7 +1,9 @@
 import logging
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from Bot.Database import MessageCache
+from Bot.Utils.crypto import encrypt
 
 logger = logging.getLogger(__name__)
 
@@ -10,9 +12,9 @@ async def SaveHandler(
     message: Message, user_id: int, message_type: str, session: AsyncSession
 ):
     try:
-        message_id = int(f"{message.chat.id}{message.message_id}")
+        message_id = hash(f"{message.chat.id}:{message.message_id}")
 
-        caption = message.caption or message.text or "None"
+        caption = message.caption or message.text or ""
         file_id = None
 
         if message_type == "Message":
@@ -32,7 +34,7 @@ async def SaveHandler(
             Chat_full_name=message.from_user.full_name,
             User_id=user_id,
             Type=message_type,
-            Caption=caption,
+            Caption=encrypt(caption),
             File_id=file_id,
         )
 
