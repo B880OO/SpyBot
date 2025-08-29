@@ -10,7 +10,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Bot.Database import MessageCache
-from Bot.Utils.crypto import decrypt, encrypt
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ def build_caption(
     msg_type: str, chat_id: int, chat_title: str, caption: Optional[str]
 ) -> str:
     base = f"Отправитель: <a href='tg://user?id={chat_id}'><b>{escape_html(chat_title)}</b></a>\n"
-    body = f"<blockquote><b>{escape_html(decrypt(token=caption))}</b></blockquote>"
+    body = f"<blockquote><b>{escape_html(caption)}</b></blockquote>"
 
     texts = {
         "Message": "🗑 Это сообщение было удалено:",
@@ -118,7 +117,7 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
                     cached.User_id,
                     f"🔏 Пользователь <a href='tg://user?id={message.from_user.id}'>{escape_html(message.from_user.full_name)}</a> "
                     f"изменил сообщение:\n\n"
-                    f"Старый текст: <blockquote><b>{decrypt(token=old_text)}</b></blockquote>\n"
+                    f"Старый текст: <blockquote><b>{old_text}</b></blockquote>\n"
                     f"Новый текст: <blockquote><b>{new_text}</b></blockquote>",
                     parse_mode="HTML",
                 )

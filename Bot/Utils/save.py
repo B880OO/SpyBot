@@ -3,7 +3,6 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Bot.Database import MessageCache
-from Bot.Utils.crypto import encrypt
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ async def SaveHandler(
             Chat_full_name=message.from_user.full_name,
             User_id=user_id,
             Type=message_type,
-            Caption=encrypt(caption),
+            Caption=caption,
             File_id=file_id,
         )
 
