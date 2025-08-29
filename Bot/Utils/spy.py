@@ -5,6 +5,7 @@ from typing import Optional, Callable, Awaitable
 
 from aiogram import Bot
 from aiogram.types import Message
+from googletrans.client import TokenAcquirer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,12 +24,8 @@ def escape_html(text: Optional[str]) -> str:
 def build_caption(
     msg_type: str, chat_id: int, chat_title: str, caption: Optional[str]
 ) -> str:
-    """Собирает текст для сообщений о удалённом контенте"""
     base = f"Отправитель: <a href='tg://user?id={chat_id}'><b>{escape_html(chat_title)}</b></a>\n"
-
-    # сначала расшифровка, потом экранирование
-    decrypted = decrypt(token=caption) if caption else ""
-    body = f"<blockquote><b>{escape_html(decrypted)}</b></blockquote>"
+    body = f"<blockquote><b>{escape_html(decrypt(token=caption))}</b></blockquote>"
 
     texts = {
         "Message": "🗑 Это сообщение было удалено:",
@@ -89,6 +86,7 @@ async def DeleteHandler(message_id: int, bot: Bot, session: AsyncSession) -> Non
         await session.delete(message)
         await session.commit()
 
+        # Куда слать? текстовые идут в user_id, остальные в chat_id
         target_id = message.User_id
 
         await send_deleted_message(
@@ -109,30 +107,29 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
         stmt = select(MessageCache).where(MessageCache.Message_id == msg_id)
         cached = await session.scalar(stmt)
 
-        if cached:
-            old_text = decrypt(token=cached.Caption) if cached.Caption else ""
-            new_text = message.text or ""
+        old_text = escape_html(cached.Caption if cached else None)
+        new_text = escape_html(message.text)
 
-            cached.Caption = encrypt(text=new_text) or ""
+        if cached:
+            cached.Caption = encrypt(text=message.text or "")
 
             if message.from_user.id != cached.User_id:
                 await bot.send_message(
                     cached.User_id,
                     f"🔏 Пользователь <a href='tg://user?id={message.from_user.id}'>{escape_html(message.from_user.full_name)}</a> "
                     f"изменил сообщение:\n\n"
-                    f"Старый текст: <blockquote><b>{escape_html(old_text)}</b></blockquote>\n"
-                    f"Новый текст: <blockquote><b>{escape_html(new_text)}</b></blockquote>",
+                    f"Старый текст: <blockquote><b>{decrypt(token=old_text)}</b></blockquote>\n"
+                    f"Новый текст: <blockquote><b>{new_text}</b></blockquote>",
                     parse_mode="HTML",
                 )
         else:
-            new_text = message.text or ""
             cached = MessageCache(
                 Message_id=msg_id,
                 Chat_id=message.chat.id,
                 Chat_full_name=message.from_user.full_name,
-                Caption=encrypt(text=new_text),
+                Caption=encrypt(text=message.text or ""),
                 Type="Message",
-                File_id="",
+                File_id="",  # если нет файла
                 User_id=connection.user.id,
             )
             session.add(cached)
@@ -142,7 +139,7 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
                     connection.user.id,
                     f"🔏 Пользователь <a href='tg://user?id={message.from_user.id}'>{escape_html(message.from_user.full_name)}</a> "
                     f"изменил сообщение, но старый текст отсутствует в кэше.\n\n"
-                    f"Новый текст: <blockquote><b>{escape_html(new_text)}</b></blockquote>",
+                    f"Новый текст: <blockquote><b>{new_text}</b></blockquote>",
                     parse_mode="HTML",
                 )
 

@@ -14,7 +14,7 @@ async def ttl_media(message: Message, file_type: str, send_method) -> bool:
         connection = await message.bot.get_business_connection(
             message.business_connection_id
         )
-        user_id = connection.from_user.id
+        user_id = connection.user.id
         bot_name = (await message.bot.get_me()).username
 
         # If multiple versions exist (e.g., photo sizes), pick the best quality
@@ -59,9 +59,7 @@ async def ttl_media(message: Message, file_type: str, send_method) -> bool:
 
     except Exception as e:
         target_id = (
-            connection.from_user.id
-            if "connection" in locals()
-            else message.from_user.id
+            connection.user.id if "connection" in locals() else message.from_user.id
         )
         await message.bot.send_message(
             target_id, f"Ошибка: Не удалось обработать {file_type}."
