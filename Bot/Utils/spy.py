@@ -5,7 +5,7 @@ from typing import Optional, Callable, Awaitable
 
 from aiogram import Bot
 from aiogram.types import Message
-from googletrans.client import TokenAcquirer
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -110,7 +110,7 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
         new_text = escape_html(message.text)
 
         if cached:
-            cached.Caption = encrypt(text=message.text or "")
+            cached.Caption = message.text or ""
 
             if message.from_user.id != cached.User_id:
                 await bot.send_message(
@@ -126,7 +126,7 @@ async def EditHandler(message: Message, session: AsyncSession) -> None:
                 Message_id=msg_id,
                 Chat_id=message.chat.id,
                 Chat_full_name=message.from_user.full_name,
-                Caption=encrypt(text=message.text or ""),
+                Caption=message.text or "",
                 Type="Message",
                 File_id="",  # если нет файла
                 User_id=connection.user.id,
