@@ -11,7 +11,7 @@ async def SaveHandler(
     message: Message, user_id: int, message_type: str, session: AsyncSession
 ):
     try:
-        message_id = hash(f"{message.chat.id}:{message.message_id}")
+        message_id = int(f"{message.chat.id}:{message.message_id}")
 
         caption = message.caption or message.text or ""
         file_id = None
