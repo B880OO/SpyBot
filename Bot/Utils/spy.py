@@ -85,7 +85,7 @@ async def DeleteHandler(message_id: int, bot: Bot, session: AsyncSession) -> Non
         await session.delete(message)
         await session.commit()
 
-        # Куда слать? текстовые идут в user_id, остальные в chat_id
+        # Куда слать? текстовые идут `в user_id, остальные в chat_id
         target_id = message.User_id
 
         await send_deleted_message(
